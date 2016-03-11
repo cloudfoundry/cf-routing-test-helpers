@@ -69,7 +69,7 @@ func GetAppInfo(appName string, timeout time.Duration) (host, port string) {
 }
 
 func UpdatePorts(appName string, ports []uint32, timeout time.Duration) {
-	appGuid := GetAppGuid(appName)
+	appGuid := GetAppGuid(appName, timeout)
 
 	bodyMap := map[string][]uint32{
 		"ports": ports,
@@ -82,7 +82,7 @@ func UpdatePorts(appName string, ports []uint32, timeout time.Duration) {
 }
 
 func CreateRouteMapping(appName string, hostname string, port uint32, timeout time.Duration) {
-	appGuid := GetAppGuid(appName)
+	appGuid := GetAppGuid(appName, timeout)
 	routeGuid := GetRouteGuid(hostname, "", timeout)
 
 	bodyMap := map[string]interface{}{

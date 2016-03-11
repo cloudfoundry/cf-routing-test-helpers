@@ -14,44 +14,42 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var DEFAULT_TIMEOUT = 30 * time.Second
-
-func GetAppGuid(appName string) string {
+func GetAppGuid(appName string, timeout time.Duration) string {
 	cfApp := cf.Cf("app", appName, "--guid")
-	Eventually(cfApp, DEFAULT_TIMEOUT).Should(Exit(0))
+	Eventually(cfApp, timeout).Should(Exit(0))
 
 	appGuid := strings.TrimSpace(string(cfApp.Out.Contents()))
 	Expect(appGuid).NotTo(Equal(""))
 	return appGuid
 }
 
-func SetBackend(appName string) {
+func SetBackend(appName string, timeout time.Duration) {
 	config := helpers.LoadConfig()
 	if config.Backend == "diego" {
-		EnableDiego(appName)
+		EnableDiego(appName, timeout)
 	} else if config.Backend == "dea" {
-		DisableDiego(appName)
+		DisableDiego(appName, timeout)
 	}
 }
 
-func EnableDiego(appName string) {
-	guid := GetAppGuid(appName)
-	Eventually(cf.Cf("curl", "/v2/apps/"+guid, "-X", "PUT", "-d", `{"diego": true}`), DEFAULT_TIMEOUT).Should(Exit(0))
+func EnableDiego(appName string, timeout time.Duration) {
+	guid := GetAppGuid(appName, timeout)
+	Eventually(cf.Cf("curl", "/v2/apps/"+guid, "-X", "PUT", "-d", `{"diego": true}`), timeout).Should(Exit(0))
 }
 
-func DisableDiego(appName string) {
-	guid := GetAppGuid(appName)
-	Eventually(cf.Cf("curl", "/v2/apps/"+guid, "-X", "PUT", "-d", `{"diego": false}`), DEFAULT_TIMEOUT).Should(Exit(0))
+func DisableDiego(appName string, timeout time.Duration) {
+	guid := GetAppGuid(appName, timeout)
+	Eventually(cf.Cf("curl", "/v2/apps/"+guid, "-X", "PUT", "-d", `{"diego": false}`), timeout).Should(Exit(0))
 }
 
-func DisableDiegoAndCheckResponse(appName, expectedSubstring string) {
-	guid := GetAppGuid(appName)
+func DisableDiegoAndCheckResponse(appName, expectedSubstring string, timeout time.Duration) {
+	guid := GetAppGuid(appName, timeout)
 	Eventually(func() string {
 		response := cf.Cf("curl", "/v2/apps/"+guid, "-X", "PUT", "-d", `{"diego":false}`)
-		Expect(response.Wait(DEFAULT_TIMEOUT)).To(Exit(0))
+		Expect(response.Wait(timeout)).To(Exit(0))
 
 		return string(response.Out.Contents())
-	}, DEFAULT_TIMEOUT, "1s").Should(ContainSubstring(expectedSubstring))
+	}, timeout, "1s").Should(ContainSubstring(expectedSubstring))
 }
 
 func AppReport(appName string, timeout time.Duration) {
@@ -69,7 +67,7 @@ func StartApp(app string, timeout time.Duration) {
 
 func PushApp(appName, asset, buildpackName, domain string, timeout time.Duration) {
 	PushAppNoStart(appName, asset, buildpackName, domain, timeout)
-	SetBackend(appName)
+	SetBackend(appName, timeout)
 	StartApp(appName, timeout)
 }
 
