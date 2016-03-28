@@ -89,10 +89,18 @@ func GetSpaceGuid(space string, timeout time.Duration) string {
 	return spaceGuid
 }
 
-func GetRouteGuid(hostname, path string, port uint16, timeout time.Duration) string {
-	routeGuid := GetGuid(fmt.Sprintf("/v2/routes?q=host:%s&q=path:%s&q=port:%d", hostname, path, port), timeout)
+func GetRouteGuidWithPort(hostname, path string, port uint16, timeout time.Duration) string {
+	routeQuery := fmt.Sprintf("/v2/routes?q=host:%s&q=path:%s", hostname, path)
+	if port > 0 {
+		routeQuery = routeQuery + fmt.Sprintf("&q=port:%d", port)
+	}
+	routeGuid := GetGuid(routeQuery, timeout)
 	Expect(routeGuid).NotTo(Equal(""))
 	return routeGuid
+}
+
+func GetRouteGuid(hostname, path string, timeout time.Duration) string {
+	return GetRouteGuidWithPort(hostname, path, 0, timeout)
 }
 
 func GetAppInfo(appName string, timeout time.Duration) (host, port string) {
@@ -128,7 +136,7 @@ func UpdatePorts(appName string, ports []uint16, timeout time.Duration) {
 
 func CreateRouteMapping(appName string, hostname string, externalPort uint16, appPort uint16, timeout time.Duration) {
 	appGuid := GetAppGuid(appName, timeout)
-	routeGuid := GetRouteGuid(hostname, "", externalPort, timeout)
+	routeGuid := GetRouteGuidWithPort(hostname, "", externalPort, timeout)
 
 	bodyMap := map[string]interface{}{
 		"app_guid":   appGuid,
