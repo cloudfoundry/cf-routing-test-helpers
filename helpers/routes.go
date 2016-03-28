@@ -54,6 +54,7 @@ func CreateTcpRouteWithRandomPort(space, domain string, timeout time.Duration) u
 
 	err = json.Unmarshal(responseBuffer.Out.Contents(), &routeResponse)
 	Expect(err).NotTo(HaveOccurred())
+	Expect(routeResponse.Entity.Port).NotTo(BeZero())
 	return routeResponse.Entity.Port
 }
 
