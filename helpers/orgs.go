@@ -6,19 +6,20 @@ import (
 	"strings"
 	"time"
 
+	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
+
 	"github.com/cloudfoundry-incubator/cf-routing-test-helpers/schema"
 	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
-	"github.com/cloudfoundry-incubator/cf-test-helpers/runner"
 )
 
 func GetOrgQuotaDefinitionUrl(orgGuid string, timeout time.Duration) (string, error) {
 	orgGuid = strings.TrimSuffix(orgGuid, "\n")
-	orgResponse := runner.NewCmdRunner(
-		cf.Cf("curl", fmt.Sprintf("/v2/organizations/%s", string(orgGuid))),
-		timeout).Run().Out.Contents()
+	response := cf.Cf("curl", fmt.Sprintf("/v2/organizations/%s", string(orgGuid)))
+	Expect(response.Wait(timeout)).To(Exit(0))
 
 	var orgEntity schema.OrgResource
-	err := json.Unmarshal(orgResponse, &orgEntity)
+	err := json.Unmarshal(response.Out.Contents(), &orgEntity)
 	if err != nil {
 		return "", err
 	}
