@@ -149,15 +149,8 @@ func CreateRouteMapping(appName string, hostname string, externalPort uint16, ap
 	Expect(cf.Cf("curl", fmt.Sprintf("/v2/route_mappings"), "-X", "POST", "-d", string(data)).Wait(timeout)).To(Exit(0))
 }
 
-func CreateSharedDomain(domainName, routerGroupGuid string, timeout time.Duration) {
-	bodyMap := map[string]interface{}{
-		"name":              domainName,
-		"router_group_guid": routerGroupGuid,
-	}
-
-	data, err := json.Marshal(bodyMap)
-	Expect(err).ToNot(HaveOccurred())
-	resp := cf.Cf("curl", fmt.Sprintf("/v2/shared_domains"), "-X", "POST", "-d", string(data))
+func CreateSharedDomain(domainName, routerGroupName string, timeout time.Duration) {
+	resp := cf.Cf("create-shared-domain", domainName, "--router-group", routerGroupName)
 	resp.Wait(timeout)
 }
 
