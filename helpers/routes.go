@@ -57,6 +57,13 @@ func CreateTcpRouteWithRandomPort(space, domain string, timeout time.Duration) u
 	return routeResponse.Entity.Port
 }
 
+func VerifySharedDomain(domainName string, timeout time.Duration) {
+	output := cf.Cf("domains")
+	Expect(output.Wait(timeout)).To(Exit(0))
+
+	Expect(string(output.Out.Contents())).To(ContainSubstring(domainName))
+}
+
 func GetGuid(curlPath string, timeout time.Duration) string {
 	var response schema.ListResponse
 
