@@ -18,8 +18,19 @@ const (
 	deaUnsupportedTag = "{NO_DEA_SUPPORT} "
 )
 
+func MapRandomTcpRouteToApp(app, domain string, timeout time.Duration) {
+	Expect(cf.Cf("map-route", app, domain, "--random-port").Wait(timeout)).To(Exit(0))
+}
+
 func MapRouteToApp(app, domain, host, path string, timeout time.Duration) {
 	Expect(cf.Cf("map-route", app, domain, "--hostname", host, "--path", path).Wait(timeout)).To(Exit(0))
+}
+
+func DeleteTcpRoute(domain, port string, timeout time.Duration) {
+	Expect(cf.Cf("delete-route", domain,
+		"--port", port,
+		"-f",
+	).Wait(timeout)).To(Exit(0))
 }
 
 func DeleteRoute(hostname, contextPath, domain string, timeout time.Duration) {
@@ -74,6 +85,14 @@ func GetGuid(curlPath string, timeout time.Duration) string {
 		return response.Resources[0].Metadata.Guid
 	}
 	return ""
+}
+func GetPortFromAppsInfo(appName, domainName string, timeout time.Duration) string {
+	cfResponse := cf.Cf("apps").Wait(timeout).Out.Contents()
+	re := regexp.MustCompile(appName + ".*" + domainName + ":([0-9]*)")
+	matches := re.FindStringSubmatch(string(cfResponse))
+
+	Expect(len(matches)).To(Equal(2))
+	return matches[1]
 }
 
 func GetRouteGuidWithPort(hostname, path string, port uint16, timeout time.Duration) string {
