@@ -48,7 +48,7 @@ func CreateRoute(hostname, contextPath, space, domain string, timeout time.Durat
 	).Wait(timeout)).To(Exit(0))
 }
 
-func CreateTcpRouteWithRandomPort(space, domain string, timeout time.Duration) uint16 {
+func CreateTcpRouteWithRandomPort(space, domain, host string, timeout time.Duration) uint16 {
 	responseBuffer := cf.Cf("create-route", space, domain, "--random-port")
 	Expect(responseBuffer.Wait(timeout)).To(Exit(0))
 
