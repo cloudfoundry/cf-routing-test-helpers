@@ -3,6 +3,7 @@ package helpers
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"regexp"
 	"strconv"
 	"time"
@@ -18,8 +19,19 @@ const (
 	deaUnsupportedTag = "{NO_DEA_SUPPORT} "
 )
 
+func MapRandomTcpRouteToApp(app, domain string, timeout time.Duration) {
+	Expect(cf.Cf("map-route", app, domain, "--random-port").Wait(timeout)).To(Exit(0))
+}
+
 func MapRouteToApp(app, domain, host, path string, timeout time.Duration) {
 	Expect(cf.Cf("map-route", app, domain, "--hostname", host, "--path", path).Wait(timeout)).To(Exit(0))
+}
+
+func DeleteTcpRoute(domain, port string, timeout time.Duration) {
+	Expect(cf.Cf("delete-route", domain,
+		"--port", port,
+		"-f",
+	).Wait(timeout)).To(Exit(0))
 }
 
 func DeleteRoute(hostname, contextPath, domain string, timeout time.Duration) {
@@ -62,7 +74,8 @@ func VerifySharedDomain(domainName string, timeout time.Duration) {
 	Expect(string(output.Out.Contents())).To(ContainSubstring(domainName))
 }
 
-func GetGuid(curlPath string, timeout time.Duration) string {
+func getGuid(curlPath string, timeout time.Duration) string {
+	os.Setenv("CF_TRACE", "false")
 	var response schema.ListResponse
 
 	responseBuffer := cf.Cf("curl", curlPath)
@@ -75,13 +88,21 @@ func GetGuid(curlPath string, timeout time.Duration) string {
 	}
 	return ""
 }
+func GetPortFromAppsInfo(appName, domainName string, timeout time.Duration) string {
+	cfResponse := cf.Cf("apps").Wait(timeout).Out.Contents()
+	re := regexp.MustCompile(appName + ".*" + domainName + ":([0-9]*)")
+	matches := re.FindStringSubmatch(string(cfResponse))
+
+	Expect(len(matches)).To(Equal(2))
+	return matches[1]
+}
 
 func GetRouteGuidWithPort(hostname, path string, port uint16, timeout time.Duration) string {
 	routeQuery := fmt.Sprintf("/v2/routes?q=host:%s&q=path:%s", hostname, path)
 	if port > 0 {
 		routeQuery = routeQuery + fmt.Sprintf("&q=port:%d", port)
 	}
-	routeGuid := GetGuid(routeQuery, timeout)
+	routeGuid := getGuid(routeQuery, timeout)
 	Expect(routeGuid).NotTo(Equal(""))
 	return routeGuid
 }
@@ -91,6 +112,7 @@ func GetRouteGuid(hostname, path string, timeout time.Duration) string {
 }
 
 func GetAppInfo(appName string, timeout time.Duration) (host, port string) {
+	os.Setenv("CF_TRACE", "false")
 	var appsResponse schema.AppsResponse
 	var statsResponse schema.StatsResponse
 
