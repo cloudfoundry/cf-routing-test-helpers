@@ -50,6 +50,13 @@ func CreateRoute(hostname, contextPath, space, domain string, timeout time.Durat
 }
 
 func CreateTcpRouteWithRandomPort(space, domain string, timeout time.Duration) uint16 {
+	CFColor := os.Getenv("CF_COLOR")
+
+	err := os.Setenv("CF_COLOR", "false")
+	Expect(err).NotTo(HaveOccurred())
+
+	defer os.Setenv("CF_COLOR", CFColor)
+
 	responseBuffer := cf.Cf("create-route", space, domain, "--random-port")
 	Expect(responseBuffer.Wait(timeout)).To(Exit(0))
 
@@ -75,19 +82,22 @@ func VerifySharedDomain(domainName string, timeout time.Duration) {
 }
 
 func getGuid(curlPath string, timeout time.Duration) string {
-	os.Setenv("CF_TRACE", "false")
+	err := os.Setenv("CF_TRACE", "false")
+	Expect(err).NotTo(HaveOccurred())
+
 	var response schema.ListResponse
 
 	responseBuffer := cf.Cf("curl", curlPath)
 	Expect(responseBuffer.Wait(timeout)).To(Exit(0))
 
-	err := json.Unmarshal(responseBuffer.Out.Contents(), &response)
+	err = json.Unmarshal(responseBuffer.Out.Contents(), &response)
 	Expect(err).NotTo(HaveOccurred())
 	if response.TotalResults == 1 {
 		return response.Resources[0].Metadata.Guid
 	}
 	return ""
 }
+
 func GetPortFromAppsInfo(appName, domainName string, timeout time.Duration) string {
 	cfResponse := cf.Cf("apps").Wait(timeout).Out.Contents()
 	re := regexp.MustCompile(appName + ".*" + domainName + ":([0-9]*)")
