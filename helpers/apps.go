@@ -84,16 +84,23 @@ func GenerateAppName() string {
 }
 
 func PushAppNoStart(appName, asset, buildpackName, domain string, timeout time.Duration, memoryLimit string, args ...string) {
-	allArgs := []string{"push", appName,
-		"-b", buildpackName,
-		"--no-start",
-		"-m", memoryLimit,
-		"-p", asset,
-		"-d", domain}
-	for _, v := range args {
-		allArgs = append(allArgs, v)
+	flags := map[string]string{
+		"-b": buildpackName,
+		"-m": memoryLimit,
+		"-p": asset,
+		"-d": domain,
 	}
-	Expect(cf.Cf(allArgs...).Wait(timeout)).To(Exit(0))
+
+	for flag, value := range flags {
+		if value == "" {
+			continue
+		}
+		args = append([]string{flag, value}, args...)
+	}
+
+	args = append([]string{"push", appName, "--no-start"}, args...)
+
+	Expect(cf.Cf(args...).Wait(timeout)).To(Exit(0))
 }
 
 func ScaleAppInstances(appName string, instances int, timeout time.Duration) {
