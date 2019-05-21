@@ -1,4 +1,4 @@
-package testhelpers
+package tlshelpers
 
 import (
 	"bytes"
