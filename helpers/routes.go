@@ -66,7 +66,7 @@ func CreateTcpRouteWithRandomPort(space, domain string, timeout time.Duration) u
 
 	var responseBuffer *gexec.Session
 	if isVersion7() {
-		responseBuffer = cf.Cf("create-route", space, domain)
+		responseBuffer = cf.Cf("create-route", domain)
 	} else {
 		responseBuffer = cf.Cf("create-route", space, domain, "--random-port")
 	}
