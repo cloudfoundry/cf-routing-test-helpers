@@ -4,11 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gexec"
 	. "github.com/onsi/gomega/gexec"
 
 	"code.cloudfoundry.org/cf-routing-test-helpers/schema"
@@ -20,7 +23,11 @@ const (
 )
 
 func MapRandomTcpRouteToApp(app, domain string, timeout time.Duration) {
-	Expect(cf.Cf("map-route", app, domain, "--random-port").Wait(timeout)).To(Exit(0))
+	if isVersion7() {
+		Expect(cf.Cf("map-route", app, domain).Wait(timeout)).To(Exit(0))
+	} else {
+		Expect(cf.Cf("map-route", app, domain, "--random-port").Wait(timeout)).To(Exit(0))
+	}
 }
 
 func MapRouteToApp(app, domain, host, path string, timeout time.Duration) {
@@ -57,7 +64,12 @@ func CreateTcpRouteWithRandomPort(space, domain string, timeout time.Duration) u
 
 	defer os.Setenv("CF_COLOR", CFColor)
 
-	responseBuffer := cf.Cf("create-route", space, domain, "--random-port")
+	var responseBuffer *gexec.Session
+	if isVersion7() {
+		responseBuffer = cf.Cf("create-route", space, domain, "--random-port")
+	} else {
+		responseBuffer = cf.Cf("create-route", space, domain, "--random-port")
+	}
 	Expect(responseBuffer.Wait(timeout)).To(Exit(0))
 
 	port, err := strconv.Atoi(grabPort(responseBuffer.Out.Contents(), domain))
@@ -175,4 +187,19 @@ func CreateSharedDomain(domainName, routerGroupName string, timeout time.Duratio
 
 func DeleteSharedDomain(domainName string, timeout time.Duration) {
 	Expect(cf.Cf("delete-shared-domain", domainName, "-f").Wait(timeout)).To(Exit(0))
+}
+
+func isVersion7() bool {
+	// cf version 6.51.0+2acd15650.2020-04-07
+	// cf7 version 7.0.2+17b4eeafd.2020-07-24
+	bytes, err := exec.Command("cf", "version").CombinedOutput()
+	Expect(err).ToNot(HaveOccurred())
+
+	versionString := string(bytes)
+	versionString = strings.Split(versionString, " ")[2]
+	versionString = strings.Split(versionString, ".")[0]
+	majorVersion, _ := strconv.Atoi(versionString)
+	Expect(err).ToNot(HaveOccurred())
+
+	return majorVersion == 7
 }
