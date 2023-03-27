@@ -8,9 +8,9 @@ import (
 
 	. "github.com/onsi/gomega/gexec"
 
-	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
-	"github.com/cloudfoundry-incubator/cf-test-helpers/config"
-	"github.com/cloudfoundry-incubator/cf-test-helpers/generator"
+	"github.com/cloudfoundry/cf-test-helpers/v2/cf"
+	"github.com/cloudfoundry/cf-test-helpers/v2/config"
+	"github.com/cloudfoundry/cf-test-helpers/v2/generator"
 	. "github.com/onsi/gomega"
 )
 

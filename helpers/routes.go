@@ -14,8 +14,8 @@ import (
 	"github.com/onsi/gomega/gexec"
 	. "github.com/onsi/gomega/gexec"
 
-	"code.cloudfoundry.org/cf-routing-test-helpers/schema"
-	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
+	"github.com/cloudfoundry/cf-routing-test-helpers/schema"
+	"github.com/cloudfoundry/cf-test-helpers/v2/cf"
 )
 
 const (
