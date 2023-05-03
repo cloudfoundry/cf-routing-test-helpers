@@ -65,7 +65,7 @@ func CreateTcpRouteWithRandomPort(space, domain string, timeout time.Duration) u
 	defer os.Setenv("CF_COLOR", CFColor)
 
 	var responseBuffer *gexec.Session
-	if isVersion7() {
+	if isGreaterThanOrEqualToVersion7() {
 		responseBuffer = cf.Cf("create-route", domain)
 	} else {
 		responseBuffer = cf.Cf("create-route", space, domain, "--random-port")
@@ -189,7 +189,7 @@ func DeleteSharedDomain(domainName string, timeout time.Duration) {
 	Expect(cf.Cf("delete-shared-domain", domainName, "-f").Wait(timeout)).To(Exit(0))
 }
 
-func isVersion7() bool {
+func isGreaterThanOrEqualToVersion7() bool {
 	// cf version 6.51.0+2acd15650.2020-04-07
 	// cf7 version 7.0.2+17b4eeafd.2020-07-24
 	bytes, err := exec.Command("cf", "version").CombinedOutput()
@@ -201,5 +201,5 @@ func isVersion7() bool {
 	majorVersion, _ := strconv.Atoi(versionString)
 	Expect(err).ToNot(HaveOccurred())
 
-	return majorVersion == 7
+	return majorVersion >= 7
 }
