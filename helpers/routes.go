@@ -23,7 +23,7 @@ const (
 )
 
 func MapRandomTcpRouteToApp(app, domain string, timeout time.Duration) {
-	if isVersion7() {
+	if isGreaterThanOrEqualToVersion7() {
 		Expect(cf.Cf("map-route", app, domain).Wait(timeout)).To(Exit(0))
 	} else {
 		Expect(cf.Cf("map-route", app, domain, "--random-port").Wait(timeout)).To(Exit(0))
