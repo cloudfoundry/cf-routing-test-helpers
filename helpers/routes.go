@@ -177,7 +177,7 @@ func CreateRouteMapping(appName string, hostname string, externalPort uint16, ap
 	data, err := json.Marshal(bodyMap)
 	Expect(err).ToNot(HaveOccurred())
 
-	Expect(cf.Cf("curl", fmt.Sprintf("/v2/route_mappings"), "-X", "POST", "-d", string(data)).Wait(timeout)).To(Exit(0))
+	Expect(cf.Cf("curl", "/v2/route_mappings", "-X", "POST", "-d", string(data)).Wait(timeout)).To(Exit(0))
 }
 
 func CreateSharedDomain(domainName, routerGroupName string, timeout time.Duration) {
