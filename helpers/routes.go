@@ -11,7 +11,6 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gexec"
 	. "github.com/onsi/gomega/gexec"
 
 	"github.com/cloudfoundry/cf-routing-test-helpers/schema"
@@ -64,7 +63,7 @@ func CreateTcpRouteWithRandomPort(space, domain string, timeout time.Duration) u
 
 	defer os.Setenv("CF_COLOR", CFColor)
 
-	var responseBuffer *gexec.Session
+	var responseBuffer *Session
 	if isGreaterThanOrEqualToVersion7() {
 		responseBuffer = cf.Cf("create-route", domain)
 	} else {
