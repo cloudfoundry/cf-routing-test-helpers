@@ -17,10 +17,6 @@ import (
 	"github.com/cloudfoundry/cf-test-helpers/v2/cf"
 )
 
-const (
-	deaUnsupportedTag = "{NO_DEA_SUPPORT} "
-)
-
 func MapRandomTcpRouteToApp(app, domain string, timeout time.Duration) {
 	if isGreaterThanOrEqualToVersion7() {
 		Expect(cf.Cf("map-route", app, domain).Wait(timeout)).To(Exit(0))
