@@ -129,12 +129,13 @@ func GetRouteGuid(hostname, path string, timeout time.Duration) string {
 }
 
 func GetAppInfo(appName string, timeout time.Duration) (host, port string) {
-	os.Setenv("CF_TRACE", "false")
+	err := os.Setenv("CF_TRACE", "false")
+	Expect(err).NotTo(HaveOccurred())
 	var appsResponse schema.AppsResponse
 	var statsResponse schema.StatsResponse
 
 	cfResponse := cf.Cf("curl", fmt.Sprintf("/v2/apps?q=name:%s", appName)).Wait(timeout).Out.Contents()
-	err := json.Unmarshal(cfResponse, &appsResponse)
+	err = json.Unmarshal(cfResponse, &appsResponse)
 	Expect(err).NotTo(HaveOccurred())
 	serverAppUrl := appsResponse.Resources[0].Metadata.Url
 
