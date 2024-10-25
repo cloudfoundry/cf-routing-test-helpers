@@ -67,7 +67,7 @@ func CreateTcpRouteWithRandomPort(space, domain string, timeout time.Duration) u
 	}
 	Expect(responseBuffer.Wait(timeout)).To(Exit(0))
 
-	port, err := strconv.Atoi(grabPort(responseBuffer.Out.Contents(), domain))
+	port, err := strconv.ParseUint(grabPort(responseBuffer.Out.Contents(), domain), 10, 16)
 	Expect(err).NotTo(HaveOccurred())
 	return uint16(port)
 }
