@@ -9,7 +9,6 @@ import (
 	. "github.com/onsi/gomega/gexec"
 
 	"github.com/cloudfoundry/cf-test-helpers/v2/cf"
-	"github.com/cloudfoundry/cf-test-helpers/v2/config"
 	"github.com/cloudfoundry/cf-test-helpers/v2/generator"
 	. "github.com/onsi/gomega"
 )
@@ -21,35 +20,6 @@ func GetAppGuid(appName string, timeout time.Duration) string {
 	appGuid := strings.TrimSpace(string(cfApp.Out.Contents()))
 	Expect(appGuid).NotTo(Equal(""))
 	return appGuid
-}
-
-func SetBackend(appName string, timeout time.Duration) {
-	config := config.LoadConfig()
-	if config.Backend == "diego" {
-		EnableDiego(appName, timeout)
-	} else if config.Backend == "dea" {
-		DisableDiego(appName, timeout)
-	}
-}
-
-func EnableDiego(appName string, timeout time.Duration) {
-	guid := GetAppGuid(appName, timeout)
-	Eventually(cf.Cf("curl", "/v2/apps/"+guid, "-X", "PUT", "-d", `{"diego": true}`), timeout).Should(Exit(0))
-}
-
-func DisableDiego(appName string, timeout time.Duration) {
-	guid := GetAppGuid(appName, timeout)
-	Eventually(cf.Cf("curl", "/v2/apps/"+guid, "-X", "PUT", "-d", `{"diego": false}`), timeout).Should(Exit(0))
-}
-
-func DisableDiegoAndCheckResponse(appName, expectedSubstring string, timeout time.Duration) {
-	guid := GetAppGuid(appName, timeout)
-	Eventually(func() string {
-		response := cf.Cf("curl", "/v2/apps/"+guid, "-X", "PUT", "-d", `{"diego":false}`)
-		Expect(response.Wait(timeout)).To(Exit(0))
-
-		return string(response.Out.Contents())
-	}, timeout, "1s").Should(ContainSubstring(expectedSubstring))
 }
 
 func AppReport(appName string, timeout time.Duration) {
@@ -75,7 +45,6 @@ func InstancesRunning(appName string, instances int, timeout time.Duration) {
 
 func PushApp(appName, asset, buildpackName, domain string, timeout time.Duration, memoryLimit string) {
 	PushAppNoStart(appName, asset, buildpackName, domain, timeout, memoryLimit)
-	SetBackend(appName, timeout)
 	StartApp(appName, timeout)
 }
 

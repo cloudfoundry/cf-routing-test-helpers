@@ -29,6 +29,10 @@ func MapRouteToApp(app, domain, host, path string, timeout time.Duration) {
 	Expect(cf.Cf("map-route", app, domain, "--hostname", host, "--path", path).Wait(timeout)).To(Exit(0))
 }
 
+func MapRouteToAppWithPort(app, domain string, port uint16, timeout time.Duration) {
+	Expect(cf.Cf("map-route", app, domain, "--port", fmt.Sprintf("%d", port)).Wait(timeout)).To(Exit(0))
+}
+
 func DeleteTcpRoute(domain, port string, timeout time.Duration) {
 	Expect(cf.Cf("delete-route", domain,
 		"--port", port,
@@ -72,6 +76,15 @@ func CreateTcpRouteWithRandomPort(space, domain string, timeout time.Duration) u
 	return uint16(port)
 }
 
+func GetDomainGuid(domain string, timeout time.Duration) string {
+	var response schema.DomainResponse
+
+	cfResponse := cf.Cf("curl", fmt.Sprintf("/v3/domains?names=%s", domain)).Wait(timeout).Out.Contents()
+	err := json.Unmarshal(cfResponse, &response)
+	Expect(err).NotTo(HaveOccurred())
+	return response.Resources[0].Guid
+}
+
 func grabPort(response []byte, domain string) string {
 	re := regexp.MustCompile("Route " + domain + ":([0-9]*) has been created")
 	matches := re.FindStringSubmatch(string(response))
@@ -99,8 +112,8 @@ func getGuid(curlPath string, timeout time.Duration) string {
 
 	err = json.Unmarshal(responseBuffer.Out.Contents(), &response)
 	Expect(err).NotTo(HaveOccurred())
-	if response.TotalResults == 1 {
-		return response.Resources[0].Metadata.Guid
+	if response.Pagination.TotalResults == 1 {
+		return response.Resources[0].Guid
 	}
 	return ""
 }
@@ -115,9 +128,9 @@ func GetPortFromAppsInfo(appName, domainName string, timeout time.Duration) stri
 }
 
 func GetRouteGuidWithPort(hostname, path string, port uint16, timeout time.Duration) string {
-	routeQuery := fmt.Sprintf("/v2/routes?q=host:%s&q=path:%s", hostname, path)
+	routeQuery := fmt.Sprintf("/v3/routes?hosts=%s&paths=%s", hostname, path)
 	if port > 0 {
-		routeQuery = routeQuery + fmt.Sprintf("&q=port:%d", port)
+		routeQuery = routeQuery + fmt.Sprintf("&ports=%d", port)
 	}
 	routeGuid := getGuid(routeQuery, timeout)
 	Expect(routeGuid).NotTo(Equal(""))
@@ -128,53 +141,39 @@ func GetRouteGuid(hostname, path string, timeout time.Duration) string {
 	return GetRouteGuidWithPort(hostname, path, 0, timeout)
 }
 
-func GetAppInfo(appName string, timeout time.Duration) (host, port string) {
-	err := os.Setenv("CF_TRACE", "false")
-	Expect(err).NotTo(HaveOccurred())
-	var appsResponse schema.AppsResponse
-	var statsResponse schema.StatsResponse
-
-	cfResponse := cf.Cf("curl", fmt.Sprintf("/v2/apps?q=name:%s", appName)).Wait(timeout).Out.Contents()
-	err = json.Unmarshal(cfResponse, &appsResponse)
-	Expect(err).NotTo(HaveOccurred())
-	serverAppUrl := appsResponse.Resources[0].Metadata.Url
-
-	cfResponse = cf.Cf("curl", fmt.Sprintf("%s/stats", serverAppUrl)).Wait(timeout).Out.Contents()
-	err = json.Unmarshal(cfResponse, &statsResponse)
-	Expect(err).NotTo(HaveOccurred())
-
-	appIp := statsResponse["0"].Stats.Host
-	appPort := fmt.Sprintf("%d", statsResponse["0"].Stats.Port)
-	return appIp, appPort
+type Destination struct {
+	Port uint16
 }
 
-func UpdatePorts(appName string, ports []uint16, timeout time.Duration) {
+func UpdateTCPPort(appName string, externalPort uint16, internalPorts []uint16, timeout time.Duration) {
 	appGuid := GetAppGuid(appName, timeout)
 
-	bodyMap := map[string][]uint16{
-		"ports": ports,
+	var response schema.RouteObject
+	cfResponse := cf.Cf("curl", fmt.Sprintf("/v3/apps/%s/routes?ports=%d", appGuid, externalPort)).Wait(timeout).Out.Contents()
+	err := json.Unmarshal(cfResponse, &response)
+	Expect(err).NotTo(HaveOccurred())
+
+	destinations := []schema.RouteDestination{}
+	for _, port := range internalPorts {
+		for _, app := range response.Resources[0].Destinations {
+			destinations = append(destinations, schema.RouteDestination{
+				App: schema.AppResource{
+					Guid:    app.App.Guid,
+					Process: schema.AppProcessResource{Type: "web"},
+				},
+				Port:     port,
+				Protocol: "tcp",
+			})
+		}
 	}
 
-	data, err := json.Marshal(bodyMap)
-	Expect(err).ToNot(HaveOccurred())
+	body, err := json.Marshal(destinations)
+	Expect(err).NotTo(HaveOccurred())
+	value := fmt.Sprintf(`{"destinations":%s}`, string(body))
 
-	Expect(cf.Cf("curl", fmt.Sprintf("/v2/apps/%s", appGuid), "-X", "PUT", "-d", string(data)).Wait(timeout)).To(Exit(0))
-}
+	Expect(cf.Cf("curl", fmt.Sprintf("/v3/routes/%s/destinations", response.Resources[0].Guid), "-X", "PATCH", "-d", value).Wait(timeout)).To(Exit(0))
 
-func CreateRouteMapping(appName string, hostname string, externalPort uint16, appPort uint16, timeout time.Duration) {
-	appGuid := GetAppGuid(appName, timeout)
-	routeGuid := GetRouteGuidWithPort(hostname, "", externalPort, timeout)
-
-	bodyMap := map[string]interface{}{
-		"app_guid":   appGuid,
-		"route_guid": routeGuid,
-		"app_port":   appPort,
-	}
-
-	data, err := json.Marshal(bodyMap)
-	Expect(err).ToNot(HaveOccurred())
-
-	Expect(cf.Cf("curl", "/v2/route_mappings", "-X", "POST", "-d", string(data)).Wait(timeout)).To(Exit(0))
+	cf.Cf("curl", fmt.Sprintf("/v3/apps/%s/routes?ports=%d", appGuid, externalPort)).Wait(timeout).Out.Contents()
 }
 
 func CreateSharedDomain(domainName, routerGroupName string, timeout time.Duration) {
