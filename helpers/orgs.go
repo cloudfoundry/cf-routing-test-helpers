@@ -15,7 +15,7 @@ import (
 
 func GetOrgQuotaDefinitionUrl(orgGuid string, timeout time.Duration) (string, error) {
 	orgGuid = strings.TrimSuffix(orgGuid, "\n")
-	response := cf.Cf("curl", fmt.Sprintf("/v2/organizations/%s", string(orgGuid)))
+	response := cf.Cf("curl", fmt.Sprintf("/v3/organizations?guids=%s", string(orgGuid)))
 	Expect(response.Wait(timeout)).To(Exit(0))
 
 	var orgEntity schema.OrgResource
@@ -24,5 +24,5 @@ func GetOrgQuotaDefinitionUrl(orgGuid string, timeout time.Duration) (string, er
 		return "", err
 	}
 
-	return orgEntity.Entity.QuotaDefinitionUrl, nil
+	return orgEntity.Resources[0].Links.Quota.Href, nil
 }
