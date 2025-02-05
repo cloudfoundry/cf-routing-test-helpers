@@ -13,7 +13,7 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 
-	"github.com/cloudfoundry/cf-routing-test-helpers/schema"
+	"code.cloudfoundry.org/cf-routing-test-helpers/schema"
 	"github.com/cloudfoundry/cf-test-helpers/v2/cf"
 )
 
@@ -153,13 +153,13 @@ func UpdateTCPPort(appName string, externalPort uint16, internalPorts []uint16, 
 	err := json.Unmarshal(cfResponse, &response)
 	Expect(err).NotTo(HaveOccurred())
 
-	destinations := []schema.RouteDestination{}
+	destinations := []schema.Destination{}
 	for _, port := range internalPorts {
 		for _, app := range response.Resources[0].Destinations {
-			destinations = append(destinations, schema.RouteDestination{
-				App: schema.AppResource{
+			destinations = append(destinations, schema.Destination{
+				App: schema.App{
 					Guid:    app.App.Guid,
-					Process: schema.AppProcessResource{Type: "web"},
+					Process: schema.Process{Type: "web"},
 				},
 				Port:     port,
 				Protocol: "tcp",
